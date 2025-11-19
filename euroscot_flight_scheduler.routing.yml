@@ -1,7 +1,7 @@
 flight_scheduler.entry_form:
   path: '/flight-planner'
   defaults:
-    _form: 'Drupal\euroscot_flight_scheduler\Form\FlightEntryForm'
+    _form: 'Drupal\euroscot_flight_scheduler\src\Form\FlightEntryForm'
     _title: 'Flight Planner'
   requirements:
     _permission: 'access content'
