@@ -1,4 +1,4 @@
-name: 'Flight Scheduler'
+name: 'Euroscot Flight Scheduler'
 type: module
 description: 'Handles ICAO lookup and computed fields for flight distance, duration, and arrival time.'
 core_version_requirement: ^10
