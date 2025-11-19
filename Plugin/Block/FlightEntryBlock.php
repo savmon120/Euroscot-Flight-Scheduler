@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\flight_scheduler\Plugin\Block;
+namespace Drupal\euroscot_flight_scheduler\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Form\FormBuilderInterface;
