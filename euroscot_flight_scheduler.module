@@ -6,10 +6,10 @@ use GuzzleHttp\Exception\RequestException;
 /**
  * Fetch airport coordinates from AirportDB API.
  */
-function flight_scheduler_get_airport_coords($icao) {
+function euroscot_flight_scheduler_get_airport_coords($icao) {
   $icao = strtoupper(trim($icao));
   if (empty($icao)) {
-    \Drupal::logger('flight_scheduler')->warning('ICAO code is empty. Skipping lookup.');
+    \Drupal::logger('euroscot_flight_scheduler')->warning('ICAO code is empty. Skipping lookup.');
     return null;
   }
 
@@ -17,10 +17,10 @@ function flight_scheduler_get_airport_coords($icao) {
     return null;
   }
 
-  $config = \Drupal::config('flight_scheduler.settings');
+  $config = \Drupal::config('euroscot_flight_scheduler.settings');
   $api_key = $config->get('airportdb_api_key');
   if (empty($api_key)) {
-    \Drupal::logger('flight_scheduler')->error('Missing AirportDB API key.');
+    \Drupal::logger('euroscot_flight_scheduler')->error('Missing AirportDB API key.');
     return null;
   }
 
@@ -33,7 +33,7 @@ function flight_scheduler_get_airport_coords($icao) {
 
     // ✅ DEBUG: Log raw API response for inspection
     // 🔧 To disable this in production, comment out the line below
-    \Drupal::logger('flight_scheduler')->info('Raw API response for @icao: @body', [
+    \Drupal::logger('euroscot_flight_scheduler')->info('Raw API response for @icao: @body', [
       '@icao' => $icao,
       '@body' => $body,
     ]);
@@ -48,7 +48,7 @@ function flight_scheduler_get_airport_coords($icao) {
       ? $e->getResponse()->getBody()->getContents()
       : $e->getMessage();
 
-    \Drupal::logger('flight_scheduler')->error('API error for @icao: @message', [
+    \Drupal::logger('euroscot_flight_scheduler')->error('API error for @icao: @message', [
       '@icao' => $icao,
       '@message' => $message,
     ]);
@@ -67,8 +67,8 @@ function computed_field_field_flight_distance_compute($entity_type_manager, Enti
     return 0;
   }
 
-  $dep_coords = flight_scheduler_get_airport_coords($dep_icao);
-  $arr_coords = flight_scheduler_get_airport_coords($arr_icao);
+  $dep_coords = euroscot_flight_scheduler_get_airport_coords($dep_icao);
+  $arr_coords = euroscot_flight_scheduler_get_airport_coords($arr_icao);
 
   if (!$dep_coords || !$arr_coords || !$dep_coords['lat'] || !$arr_coords['lat']) {
     return 0;
@@ -134,7 +134,7 @@ function computed_field_field_departure_coords_compute($entity_type_manager, Ent
     return '';
   }
 
-  $coords = flight_scheduler_get_airport_coords($dep_icao);
+  $coords = euroscot_flight_scheduler_get_airport_coords($dep_icao);
   if (!$coords || !$coords['lat'] || !$coords['lon']) {
     return '';
   }
@@ -151,7 +151,7 @@ function computed_field_field_arrival_coords_compute($entity_type_manager, Entit
     return '';
   }
 
-  $coords = flight_scheduler_get_airport_coords($arr_icao);
+  $coords = euroscot_flight_scheduler_get_airport_coords($arr_icao);
   if (!$coords || !$coords['lat'] || !$coords['lon']) {
     return '';
   }
@@ -161,7 +161,7 @@ function computed_field_field_arrival_coords_compute($entity_type_manager, Entit
 /**
  * Implements hook_theme().
  
-function flight_scheduler_theme($existing, $type, $theme, $path) {
+function euroscot_flight_scheduler_theme($existing, $type, $theme, $path) {
   return [
     'flight_entry_form' => [
       'render element' => 'form',
