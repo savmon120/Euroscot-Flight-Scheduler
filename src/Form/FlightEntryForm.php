@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\flight_scheduler\Form;
+namespace Drupal\euroscot_flight_scheduler\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -8,12 +8,12 @@ use Drupal\Core\Form\FormStateInterface;
 class FlightEntryForm extends FormBase {
 
   public function getFormId() {
-    return 'flight_scheduler_entry_form';
+    return 'euroscot_flight_scheduler_entry_form';
   }
 
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['#tree'] = TRUE;
-    $form['#attached']['library'][] = 'flight_scheduler/flight_form_styles';
+    $form['#attached']['library'][] = 'euroscot_flight_scheduler/flight_form_styles';
 
     $outbound = $form_state->getValue('outbound') ?? [];
     $return = $form_state->getValue('return') ?? [];
@@ -197,13 +197,13 @@ class FlightEntryForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $outbound = $form_state->getValue('outbound');
     \Drupal::messenger()->addMessage($this->t('Flight @callsign saved.', ['@callsign' => $outbound['callsign']]));
-    \Drupal::logger('flight_scheduler')->notice('Flight entry saved: @callsign', ['@callsign' => $outbound['callsign']]);
+    \Drupal::logger('euroscot_flight_scheduler')->notice('Flight entry saved: @callsign', ['@callsign' => $outbound['callsign']]);
   }
 
   private function calculateDistance($dep_icao, $arr_icao) {
     if (!$dep_icao || !$arr_icao) return null;
-    $dep = flight_scheduler_get_airport_coords($dep_icao);
-    $arr = flight_scheduler_get_airport_coords($arr_icao);
+    $dep = euroscot_flight_scheduler_get_airport_coords($dep_icao);
+    $arr = euroscot_flight_scheduler_get_airport_coords($arr_icao);
     if (!$dep || !$arr || !$dep['lat'] || !$arr['lat']) return null;
 
     $lat1 = deg2rad($dep['lat']);
