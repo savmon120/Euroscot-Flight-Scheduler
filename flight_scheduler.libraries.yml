@@ -1,0 +1,5 @@
+flight_form_styles:
+  version: 1.x
+  css:
+    theme:
+      css/flight-form.css: {}

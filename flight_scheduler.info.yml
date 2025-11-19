@@ -1,0 +1,7 @@
+name: 'Flight Scheduler'
+type: module
+description: 'Handles ICAO lookup and computed fields for flight distance, duration, and arrival time.'
+core_version_requirement: ^10
+package: Custom
+dependencies:
+  - computed_field

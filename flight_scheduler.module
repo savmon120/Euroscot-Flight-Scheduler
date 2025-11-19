@@ -1,0 +1,172 @@
+<?php
+
+use Drupal\Core\Entity\EntityInterface;
+use GuzzleHttp\Exception\RequestException;
+
+/**
+ * Fetch airport coordinates from AirportDB API.
+ */
+function flight_scheduler_get_airport_coords($icao) {
+  $icao = strtoupper(trim($icao));
+  if (empty($icao)) {
+    \Drupal::logger('flight_scheduler')->warning('ICAO code is empty. Skipping lookup.');
+    return null;
+  }
+
+  if (!\Drupal::hasService('config.factory')) {
+    return null;
+  }
+
+  $config = \Drupal::config('flight_scheduler.settings');
+  $api_key = $config->get('airportdb_api_key');
+  if (empty($api_key)) {
+    \Drupal::logger('flight_scheduler')->error('Missing AirportDB API key.');
+    return null;
+  }
+
+  $client = \Drupal::httpClient();
+  $url = "https://airportdb.io/api/v1/airport/$icao?apiToken=$api_key";
+
+  try {
+    $response = $client->get($url, ['headers' => ['Accept' => 'application/json']]);
+    $body = $response->getBody()->getContents();
+
+    // ✅ DEBUG: Log raw API response for inspection
+    // 🔧 To disable this in production, comment out the line below
+    \Drupal::logger('flight_scheduler')->info('Raw API response for @icao: @body', [
+      '@icao' => $icao,
+      '@body' => $body,
+    ]);
+
+    $data = json_decode($body, true);
+    return [
+      'lat' => $data['latitude_deg'] ?? null,
+      'lon' => $data['longitude_deg'] ?? null,
+    ];
+  } catch (RequestException $e) {
+    $message = $e->hasResponse()
+      ? $e->getResponse()->getBody()->getContents()
+      : $e->getMessage();
+
+    \Drupal::logger('flight_scheduler')->error('API error for @icao: @message', [
+      '@icao' => $icao,
+      '@message' => $message,
+    ]);
+    return null;
+  }
+}
+
+/**
+ * Compute flight distance using Haversine formula.
+ */
+function computed_field_field_flight_distance_compute($entity_type_manager, EntityInterface $entity, $fields, $delta) {
+  $dep_icao = strtoupper(trim($entity->get('field_departure_icao')->value ?? ''));
+  $arr_icao = strtoupper(trim($entity->get('field_arrival_icao')->value ?? ''));
+
+  if (empty($dep_icao) || empty($arr_icao)) {
+    return 0;
+  }
+
+  $dep_coords = flight_scheduler_get_airport_coords($dep_icao);
+  $arr_coords = flight_scheduler_get_airport_coords($arr_icao);
+
+  if (!$dep_coords || !$arr_coords || !$dep_coords['lat'] || !$arr_coords['lat']) {
+    return 0;
+  }
+
+  $lat1 = deg2rad($dep_coords['lat']);
+  $lon1 = deg2rad($dep_coords['lon']);
+  $lat2 = deg2rad($arr_coords['lat']);
+  $lon2 = deg2rad($arr_coords['lon']);
+
+  $delta_lat = $lat2 - $lat1;
+  $delta_lon = $lon2 - $lon1;
+
+  $a = sin($delta_lat / 2) ** 2 + cos($lat1) * cos($lat2) * sin($delta_lon / 2) ** 2;
+  $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+  $earth_radius_nm = 3440.065;
+
+  return round($earth_radius_nm * $c, 2);
+}
+
+/**
+ * Compute flight length in minutes using fixed cruise speed.
+ */
+function computed_field_field_flight_length_compute($entity_type_manager, EntityInterface $entity, $fields, $delta) {
+  $distance = $entity->get('field_flight_distance')->value ?? 0;
+  $cruise_speed = 265; // knots
+
+  if ($distance <= 0) {
+    return 0;
+  }
+
+  return round(($distance / $cruise_speed) * 60, 2); // minutes
+}
+
+/**
+ * Compute arrival time based on departure time + estimated duration.
+ */
+function computed_field_field_arrival_time_compute($entity_type_manager, EntityInterface $entity, $fields, $delta) {
+  $dep_raw = $entity->get('field_departure_time')->value ?? '';
+  $duration_raw = $entity->get('field_flight_length')->value ?? '';
+
+  if (empty($dep_raw) || !is_numeric($duration_raw)) {
+    return '';
+  }
+
+  $dep_time = strtotime($dep_raw);
+  $duration = (float) $duration_raw;
+
+  if (!$dep_time || $duration <= 0) {
+    return '';
+  }
+
+  $arrival_timestamp = (int) round($dep_time + ($duration * 60));
+  return date('Y-m-d\TH:i:s', $arrival_timestamp);
+}
+
+/**
+ * Store departure ICAO lat/lon as "lat,lon".
+ */
+function computed_field_field_departure_coords_compute($entity_type_manager, EntityInterface $entity, $fields, $delta) {
+  $dep_icao = strtoupper(trim($entity->get('field_departure_icao')->value ?? ''));
+  if (empty($dep_icao)) {
+    return '';
+  }
+
+  $coords = flight_scheduler_get_airport_coords($dep_icao);
+  if (!$coords || !$coords['lat'] || !$coords['lon']) {
+    return '';
+  }
+
+  return $coords['lat'] . ',' . $coords['lon'];
+}
+
+/**
+ * Store arrival ICAO lat/lon as "lat,lon".
+ */
+function computed_field_field_arrival_coords_compute($entity_type_manager, EntityInterface $entity, $fields, $delta) {
+  $arr_icao = strtoupper(trim($entity->get('field_arrival_icao')->value ?? ''));
+  if (empty($arr_icao)) {
+    return '';
+  }
+
+  $coords = flight_scheduler_get_airport_coords($arr_icao);
+  if (!$coords || !$coords['lat'] || !$coords['lon']) {
+    return '';
+  }
+
+  return $coords['lat'] . ',' . $coords['lon'];
+}
+/**
+ * Implements hook_theme().
+ 
+function flight_scheduler_theme($existing, $type, $theme, $path) {
+  return [
+    'flight_entry_form' => [
+      'render element' => 'form',
+      'template' => 'flight-entry-form',
+    ],
+  ];
+}
+*/

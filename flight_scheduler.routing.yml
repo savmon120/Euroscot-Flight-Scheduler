@@ -1,0 +1,8 @@
+flight_scheduler.entry_form:
+  path: '/flight-planner'
+  defaults:
+    _form: 'Drupal\flight_scheduler\Form\FlightEntryForm'
+    _title: 'Flight Planner'
+  requirements:
+    _permission: 'access content'
+    _theme: eus_virtual
