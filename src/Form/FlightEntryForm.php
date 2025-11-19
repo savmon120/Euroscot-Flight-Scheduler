@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\euroscot_flight_scheduler\src\Form;
+namespace Drupal\euroscot_flight_scheduler\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
